@@ -2,7 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+// import 'package:flutter_dotenv/flutter_dotenv.dart'; // ❌ Not needed now
 
 import 'core/constants/app_colors.dart';
 import 'core/utils/custom_page_transition.dart';
@@ -28,13 +28,13 @@ import 'features/auth/presentation/pages/wallet_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Load environment variables
-  await dotenv.load(fileName: ".env");
-  print('[Main] Environment variables loaded');
-  print('[Main] AUTH_SERVICE_URL: ${dotenv.env['AUTH_SERVICE_URL']}');
-  print('[Main] FIREBASE_AUTH_ENDPOINT: ${dotenv.env['FIREBASE_AUTH_ENDPOINT']}');
-  
+
+  // Load environment variables (disabled, .env not used anymore)
+  // await dotenv.load(fileName: ".env");
+  // print('[Main] Environment variables loaded');
+  // print('[Main] AUTH_SERVICE_URL: ${dotenv.env['AUTH_SERVICE_URL']}');
+  // print('[Main] FIREBASE_AUTH_ENDPOINT: ${dotenv.env['FIREBASE_AUTH_ENDPOINT']}');
+
   await Firebase.initializeApp();
   await di.init(); // Initialize Dependency Injection
   runApp(const FluenceApp());
@@ -50,15 +50,12 @@ class AuthWrapper extends StatelessWidget {
         print('[AuthWrapper] AuthBloc state: $state');
         if (state is AuthAuthenticated) {
           print('[AuthWrapper] Navigating to /home...');
-          // User is authenticated, navigate to home
           context.go('/home');
         } else if (state is AuthUnauthenticated || state is AuthLogoutSuccess) {
           print('[AuthWrapper] Navigating to StartScreen...');
-          // User is not authenticated, navigate to start screen
           context.go(StartScreen.path);
         } else if (state is AuthSignUpSuccess) {
           print('[AuthWrapper] Signup complete; forcing new login.');
-          // User is not authenticated, navigate to start screen
           context.go('/login');
         }
       },
@@ -66,32 +63,23 @@ class AuthWrapper extends StatelessWidget {
         builder: (context, state) {
           if (state is AuthLoading) {
             return const Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(),
-              ),
+              body: Center(child: CircularProgressIndicator()),
             );
           }
-          
-          // Check if user is logged in from shared preferences
+
           if (SharedPreferencesService.isLoggedIn()) {
-            // Trigger auth check to verify Firebase session
             context.read<AuthBloc>().add(const AuthCheckRequested());
             return const Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(),
-              ),
+              body: Center(child: CircularProgressIndicator()),
             );
           }
-          
-          // Show start screen for unauthenticated users
+
           return const StartScreen();
         },
       ),
     );
   }
 }
-
-// Dummy Home Screen for final navigation
 
 final _router = GoRouter(
   initialLocation: '/',
@@ -170,7 +158,8 @@ final _router = GoRouter(
     GoRoute(
       path: OtpScreen.path,
       pageBuilder: (context, state) {
-        final Map<String, dynamic> extra = state.extra as Map<String, dynamic>? ?? {};
+        final Map<String, dynamic> extra =
+            state.extra as Map<String, dynamic>? ?? {};
         return buildPageWithSlideTransition(
           context: context,
           state: state,
@@ -239,7 +228,6 @@ class FluenceApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Provide the AuthBloc at the top of the widget tree
     return MultiBlocProvider(
       providers: [BlocProvider(create: (_) => sl<AuthBloc>())],
       child: MaterialApp.router(
@@ -253,8 +241,7 @@ class FluenceApp extends StatelessWidget {
                 secondary: AppColors.primaryDark,
               ),
           scaffoldBackgroundColor: AppColors.white,
-          fontFamily:
-              'Montserrat', // Assuming a modern font like Montserrat or Inter
+          fontFamily: 'Montserrat',
           useMaterial3: true,
         ),
         routerConfig: _router,

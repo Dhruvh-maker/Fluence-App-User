@@ -1,13 +1,19 @@
 import 'dart:convert';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+// import 'package:flutter_dotenv/flutter_dotenv.dart'; // ❌ Not needed now
 
 class ApiService {
   static const String _baseUrlKey = 'AUTH_SERVICE_URL';
   static const String _firebaseAuthEndpointKey = 'FIREBASE_AUTH_ENDPOINT';
 
-  static String get _baseUrl => dotenv.env[_baseUrlKey] ?? 'http://localhost:4001';
-  static String get _firebaseAuthEndpoint => dotenv.env[_firebaseAuthEndpointKey] ?? '/api/auth/firebase';
+  // static String get _baseUrl => dotenv.env[_baseUrlKey] ?? 'http://localhost:4001';
+  static String get _baseUrl =>
+      'http://10.161.237.48:4001'; // ✅ Replace with your laptop IP
+
+  // static String get _firebaseAuthEndpoint =>
+  //     dotenv.env[_firebaseAuthEndpointKey] ?? '/api/auth/firebase';
+  static String get _firebaseAuthEndpoint =>
+      '/api/auth/firebase'; // ✅ Direct endpoint now
 
   /// Firebase Authentication API call
   /// Sends Firebase ID token to backend for verification and JWT token generation
@@ -23,7 +29,7 @@ class ApiService {
       print('[ApiService] Referral Code: $referralCode');
 
       final url = Uri.parse('$_baseUrl$_firebaseAuthEndpoint');
-      
+
       final requestBody = {
         'idToken': idToken,
         if (referralCode != null) 'referralCode': referralCode,
@@ -74,9 +80,9 @@ class ApiService {
       print('[ApiService] Phone: $phone');
       print('[ApiService] Date of Birth: $dateOfBirth');
       print('[ApiService] Email: $email');
-      
+
       final url = Uri.parse('$_baseUrl/api/auth/complete-profile');
-      
+
       final requestBody = {
         'name': name,
         'phone': phone,
@@ -103,12 +109,16 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
-        print('[ApiService] Profile completion success! Parsed response: $responseData');
+        print(
+          '[ApiService] Profile completion success! Parsed response: $responseData',
+        );
         return responseData;
       } else {
         print('[ApiService] Error: HTTP ${response.statusCode}');
         print('[ApiService] Error Body: ${response.body}');
-        throw Exception('Profile completion failed: HTTP ${response.statusCode}');
+        throw Exception(
+          'Profile completion failed: HTTP ${response.statusCode}',
+        );
       }
     } catch (e) {
       print('[ApiService] Profile completion exception: $e');
@@ -124,12 +134,10 @@ class ApiService {
     try {
       print('[ApiService] Starting account status update...');
       print('[ApiService] Status: $status');
-      
+
       final url = Uri.parse('$_baseUrl/api/auth/account/status');
-      
-      final requestBody = {
-        'status': status,
-      };
+
+      final requestBody = {'status': status};
 
       print('[ApiService] Request URL: $url');
       print('[ApiService] Request Body: ${jsonEncode(requestBody)}');
@@ -150,12 +158,16 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
-        print('[ApiService] Account status update success! Parsed response: $responseData');
+        print(
+          '[ApiService] Account status update success! Parsed response: $responseData',
+        );
         return responseData;
       } else {
         print('[ApiService] Error: HTTP ${response.statusCode}');
         print('[ApiService] Error Body: ${response.body}');
-        throw Exception('Account status update failed: HTTP ${response.statusCode}');
+        throw Exception(
+          'Account status update failed: HTTP ${response.statusCode}',
+        );
       }
     } catch (e) {
       print('[ApiService] Account status update exception: $e');
@@ -168,10 +180,11 @@ class ApiService {
     try {
       print('[ApiService] Testing API connection...');
       final url = Uri.parse('$_baseUrl/health');
-      final response = await http.get(url, headers: {
-        'Accept': 'application/json',
-      });
-      
+      final response = await http.get(
+        url,
+        headers: {'Accept': 'application/json'},
+      );
+
       print('[ApiService] Health check response: ${response.statusCode}');
       return response.statusCode == 200;
     } catch (e) {
