@@ -5,11 +5,13 @@ import '../../../../core/constants/app_colors.dart';
 class CashbackEarnedCard extends StatelessWidget {
   final int amount;
   final String currency;
+  final String? title;
 
   const CashbackEarnedCard({
     super.key,
     required this.amount,
     required this.currency,
+    this.title,
   });
 
   @override
@@ -44,15 +46,16 @@ class CashbackEarnedCard extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
-                    'Cashback Earned',
-                    style: TextStyle(
+                  Text(
+                    title ?? 'Cashback Earned',
+                    style: const TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
                     ),
                   ),
+
                   const SizedBox(height: 8),
                   Text(
                     '$currency${_formatAmount(amount)}',

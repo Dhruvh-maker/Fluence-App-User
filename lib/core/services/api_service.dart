@@ -66,6 +66,35 @@ class ApiService {
     }
   }
 
+  static Future<List<dynamic>> fetchActiveMerchants() async {
+    final url = Uri.parse(
+      'http://10.161.237.48:4003/api/profiles/active',
+    ); // 🔹 apna IP daalna, localhost nahi
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['data'] ?? [];
+    } else {
+      throw Exception('Failed to fetch merchants: ${response.statusCode}');
+    }
+  }
+
+  static Future<List<dynamic>> fetchCashbackCampaigns() async {
+    final url = Uri.parse('http://10.161.237.48:4002/api/campaigns'); // apna IP
+    final response = await http.get(
+      url,
+      headers: {'Accept': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['data'] ?? [];
+    } else {
+      throw Exception('Failed to fetch campaigns: ${response.statusCode}');
+    }
+  }
+
   /// Complete user profile after initial registration
   static Future<Map<String, dynamic>> completeProfile({
     required String name,

@@ -30,50 +30,88 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _showProfileCompletionIfNeeded());
+    // WidgetsBinding.instance.addPostFrameCallback((_) => _showProfileCompletionIfNeeded());
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _showProfileCompletionIfNeeded();
+      await _loadMerchants();
+      await _loadCampaigns();
+    });
+  }
+
+  Future<void> _loadMerchants() async {
+    try {
+      final data = await ApiService.fetchActiveMerchants();
+      setState(() {
+        _topMerchants = data.map<Merchant>((json) {
+          return Merchant(
+            name: json['business_name'] ?? 'Unknown',
+            category: json['business_type'] ?? 'General',
+            icon: Icons.store,
+            color: Colors.blue,
+          );
+        }).toList();
+        _isLoadingMerchants = false;
+      });
+    } catch (e) {
+      print('Error fetching merchants: $e');
+      setState(() => _isLoadingMerchants = false);
+    }
   }
 
   Future<void> _showProfileCompletionIfNeeded() async {
-    final needsProfileCompletion = SharedPreferencesService.getNeedsProfileCompletionFlag();
+    final needsProfileCompletion =
+        SharedPreferencesService.getNeedsProfileCompletionFlag();
     if (needsProfileCompletion == true && !_shownProfileCompletionBottomSheet) {
       _shownProfileCompletionBottomSheet = true;
       await showModalBottomSheet(
         context: context,
         isScrollControlled: true,
         backgroundColor: Colors.white,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
         builder: (context) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-          child: SingleChildScrollView(child: ProfileCompletionForm(onCompleted: () {
-            setState(() {}); // Trigger UI update for new name
-            Navigator.of(context).pop();
-          })),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: SingleChildScrollView(
+            child: ProfileCompletionForm(
+              onCompleted: () {
+                setState(() {}); // Trigger UI update for new name
+                Navigator.of(context).pop();
+              },
+            ),
+          ),
         ),
       );
     }
   }
 
-  // Mock data - will be replaced with API calls
-  final List<Merchant> _topMerchants = [
-    const Merchant(
-      name: 'The Coffee Club',
-      category: 'Cafe',
-      icon: Icons.local_cafe,
-      color: Colors.green,
-    ),
-    const Merchant(
-      name: 'Sephora',
-      category: 'Beauty',
-      icon: Icons.face,
-      color: Colors.pink,
-    ),
-    const Merchant(
-      name: 'Amazon',
-      category: 'E-Commerce',
-      icon: Icons.shopping_bag,
-      color: Colors.orange,
-    ),
-  ];
+  // // Mock data - will be replaced with API calls
+  // final List<Merchant> _topMerchants = [
+  //   const Merchant(
+  //     name: 'The Coffee Club',
+  //     category: 'Cafe',
+  //     icon: Icons.local_cafe,
+  //     color: Colors.green,
+  //   ),
+  //   const Merchant(
+  //     name: 'Sephora',
+  //     category: 'Beauty',
+  //     icon: Icons.face,
+  //     color: Colors.pink,
+  //   ),
+  //   const Merchant(
+  //     name: 'Amazon',
+  //     category: 'E-Commerce',
+  //     icon: Icons.shopping_bag,
+  //     color: Colors.orange,
+  //   ),
+  // ];
+  List<Merchant> _topMerchants = [];
+  bool _isLoadingMerchants = true;
+  List<dynamic> _campaigns = [];
+  bool _isLoadingCampaigns = true;
 
   final List<MerchantCard> _discoverMerchants = [
     const MerchantCard(category: 'Shoes', imagePath: null),
@@ -102,6 +140,19 @@ class _HomeScreenState extends State<HomeScreen> {
     'Food & Beverages',
     'Fitness',
   ];
+
+  Future<void> _loadCampaigns() async {
+    try {
+      final data = await ApiService.fetchCashbackCampaigns();
+      setState(() {
+        _campaigns = data;
+        _isLoadingCampaigns = false;
+      });
+    } catch (e) {
+      print('Error fetching campaigns: $e');
+      setState(() => _isLoadingCampaigns = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -155,17 +206,38 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
 
               const SizedBox(height: 16),
-              const CashbackSwiper(),
+              // const CashbackSwiper(),
+              _isLoadingCampaigns
+                  ? const Padding(
+                      padding: EdgeInsets.all(20),
+                      child: CircularProgressIndicator(),
+                    )
+                  : CashbackSwiper(campaigns: _campaigns),
+
               // Top Merchants Section
-              TopMerchantsSection(
-                merchants: _topMerchants,
-                onViewAll: () {
-                  // Navigate to full merchants list
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('View all merchants')),
-                  );
-                },
-              ),
+              // TopMerchantsSection(
+              //   merchants: _topMerchants,
+              //   onViewAll: () {
+              //     // Navigate to full merchants list
+              //     ScaffoldMessenger.of(context).showSnackBar(
+              //       const SnackBar(content: Text('View all merchants')),
+              //     );
+              //   },
+              // ),
+              _isLoadingMerchants
+                  ? const Padding(
+                      padding: EdgeInsets.all(20),
+                      child: CircularProgressIndicator(),
+                    )
+                  : TopMerchantsSection(
+                      merchants: _topMerchants,
+                      onViewAll: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('View all merchants')),
+                        );
+                      },
+                    ),
+
               const SizedBox(height: 16),
               // Discover Merchants Section
               DiscoverMerchantsSection(
@@ -261,13 +333,21 @@ class _ProfileCompletionFormState extends State<ProfileCompletionForm> {
         _emailController.text.trim().isEmpty ||
         _phoneController.text.trim().isEmpty ||
         _dobController.text.trim().isEmpty) {
-      setState(() { _errorMessage = 'Please fill all fields.'; });
+      setState(() {
+        _errorMessage = 'Please fill all fields.';
+      });
       return;
     }
-    setState(() { _isLoading = true; _errorMessage = null; });
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
     final token = SharedPreferencesService.getAuthToken();
     if (token == null || token.isEmpty) {
-      setState(() { _errorMessage = 'No user token found'; _isLoading = false; });
+      setState(() {
+        _errorMessage = 'No user token found';
+        _isLoading = false;
+      });
       return;
     }
     try {
@@ -287,17 +367,23 @@ class _ProfileCompletionFormState extends State<ProfileCompletionForm> {
           phone: profile.user.phone,
         );
         await SharedPreferencesService.setNeedsProfileCompletionFlag(false);
-        setState(() { _isLoading = false; });
+        setState(() {
+          _isLoading = false;
+        });
         widget.onCompleted();
         if (context.mounted) Navigator.of(context).pop();
       } else {
         setState(() {
-          _errorMessage = (apiResp['message'] ?? 'Profile completion failed!').toString();
+          _errorMessage = (apiResp['message'] ?? 'Profile completion failed!')
+              .toString();
           _isLoading = false;
         });
       }
     } catch (e) {
-      setState(() { _errorMessage = 'An error occurred. Please try again.'; _isLoading = false; });
+      setState(() {
+        _errorMessage = 'An error occurred. Please try again.';
+        _isLoading = false;
+      });
     }
   }
 
@@ -309,13 +395,15 @@ class _ProfileCompletionFormState extends State<ProfileCompletionForm> {
         mainAxisSize: MainAxisSize.min,
         children: [
           const SizedBox(height: 12),
-          const Text('Complete Your Profile',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-                color: AppColors.primary,
-                fontFamily: 'Poppins',
-              )),
+          const Text(
+            'Complete Your Profile',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+              color: AppColors.primary,
+              fontFamily: 'Poppins',
+            ),
+          ),
           const SizedBox(height: 18),
           TextField(
             controller: _nameController,
@@ -366,12 +454,29 @@ class _ProfileCompletionFormState extends State<ProfileCompletionForm> {
             onPressed: _isLoading ? null : _submit,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 16),
             ),
             child: _isLoading
-                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Text('Submit', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white, fontFamily: 'Poppins')),
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Text(
+                    'Submit',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      fontFamily: 'Poppins',
+                    ),
+                  ),
           ),
           const SizedBox(height: 12),
         ],
